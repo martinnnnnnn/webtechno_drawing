@@ -1,7 +1,7 @@
 {
-  "name": "mitarbeiter",
+  "name": "draw",
   "version": "0.0.1",
-  "description": "mitarbeiter",
+  "description": "draw",
   "main": "main.js",
   "author": "BTCNGR",
   "license": "Apache-2.0",
