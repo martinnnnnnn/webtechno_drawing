@@ -5,5 +5,8 @@ block content
       h1 Draw!
       h2 Everyone else draws as well!
       h3 You can delete all content by reloading
-    canvas(id="draw", resize="true")
+    button(id="undo", class="topButton") undo
+    canvas(id="draw")
+      Your Browser does not support HTML canvas!
+    p
     script(type="text/paperscript", src="/public/javascripts/draw.js", canvas="draw")

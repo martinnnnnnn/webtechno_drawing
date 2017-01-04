@@ -12,28 +12,16 @@ app.get('/draw', function(req, res) {
     res.render('draw.jade');
 });
 
+
 io.on('connection', function (socket) {
-  console.log('connec');
-  // (2): The server recieves a ping event
-  // from the browser on this socket
-  socket.on('ping', function ( data ) {
-  
-    console.log('socket: server recieves ping (2)');
 
-    // (3): Emit a pong event all listening browsers
-    // with the data from the ping event
-    io.sockets.emit( 'pong', data );   
-    
-    console.log('socket: server sends pong to all (3)');
+  socket.on( 'drawEmit', function( data, session, strokeColor, strokeWidth ) {
+    console.log( "session " + session + " drew sth");
+    socket.broadcast.emit( 'drawEmit', data, strokeColor, strokeWidth);
   });
-  socket.on( 'drawCircle', function( data, session ) {
-
-    console.log( "session " + session + " drew:");
-    console.log( data );
-
-
-    socket.broadcast.emit( 'drawCircle', data );
-
-});
+  socket.on( 'undoEmit', function(session) {
+    console.log( "session " + session + " undid sth");
+    socket.broadcast.emit( 'undoEmit');
+  });
 });
 

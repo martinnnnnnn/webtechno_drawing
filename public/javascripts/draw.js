@@ -1,92 +1,167 @@
-io = io.connect('/');
-// The faster the user moves their mouse
-// the larger the circle will be
-// We dont want it to be larger than this
-tool.maxDistance = 50;
+var socket = io.connect('/');
 
+paper.install(window);
 
-// Returns an object specifying a semi-random color
-// The color will always have a red value of 0
-// and will be semi-transparent (the alpha value)
-function randomColor() {
-  
-  return {
-    red: 0,
-    green: Math.random(),
-    blue: Math.random(),
-    alpha: ( Math.random() * 0.25 ) + 0.05
-  };
+paper.setup('draw');
 
+var path;
+var strokeColor = 'black';
+var tools = new Array();
+var paths = new Array();
+var eraseWidth = 40;
+
+//Tool 0
+tools[0] = new Array();
+tools[0][1] = 'eraser';
+tools[0][0] = new Tool();
+tools[0][0].onMouseDown = function(event) {
+	path = new Path();
+	path.add(event.point);
+	path.strokeColor = 'white';
+	path.strokeWidth = eraseWidth;
+};
+
+tools[0][0].onMouseDrag = function(event) {
+	path.add(event.point);
+}
+tools[0][0].onMouseUp = function(event){
+	paths.push(path);
+	drawEmit(path.pathData, 'white', eraseWidth);
 }
 
+//Tool 1
+tools[1] = new Array();
+tools[1][1] = 'freeLine';
+tools[1][0] = new Tool();
+tools[1][0].onMouseDown = function(event) {
+	path = new Path();
+	path.add(event.point);
+	strokeColor = 'black';
+	path.strokeColor = strokeColor;
+};
 
-// every time the user drags their mouse
-// this function will be executed
-function onMouseDrag(event) {
-
-  // Take the click/touch position as the centre of our circle
-  var x = event.middlePoint.x;
-  var y = event.middlePoint.y;
-  
-  // The faster the movement, the bigger the circle
-  var radius = event.delta.length / 2;
-  
-  // Generate our random color
-  var color = randomColor();
-
-  // Draw the circle 
-  drawCircle( x, y, radius, color );
-  
-   // Pass the data for this circle
-  // to a special function for later
-  emitCircle( x, y, radius, color );
-
+tools[1][0].onMouseDrag = function(event) {
+	path.add(event.point);
 }
 
-
-function drawCircle( x, y, radius, color ) {
-
-  // Render the circle with Paper.js
-  var circle = new Path.Circle( new Point( x, y ), radius );
-  circle.fillColor = new RgbColor( color.red, color.green, color.blue, color.alpha );
-
-  // Refresh the view, so we always get an update, even if the tab is not in focus
-  view.draw();
-} 
-  
-
-// This function sends the data for a circle to the server
-// so that the server can broadcast it to every other user
-function emitCircle( x, y, radius, color ) {
-
-  // Each Socket.IO connection has a unique session id
-  var sessionId = io.socket.sessionid;
-  
-  // An object to describe the circle's draw data
-  var data = {
-    x: x,
-    y: y,
-    radius: radius,
-    color: color
-  };
-
-  // send a 'drawCircle' event with data and sessionId to the server
-  io.emit( 'drawCircle', data, sessionId )
-
-  // Lets have a look at the data we're sending
-  console.log( data )
-
+tools[1][0].onMouseUp = function(event){
+	paths.push(path);
+	drawEmit(path.pathData, strokeColor);
 }
 
+//Tool 2
+tools[2] = new Array();
+tools[2][1] = 'circle';
+tools[2][0] = new Tool();
+tools[2][0].onMouseDown = function(event) {
+	strokeColor = 'black';
+	path = new Path.Circle({
+		center: event.point,
+		radius: 30,
+		strokeColor: strokeColor
+	});
+}
+tools[2][0].onMouseDrag = function(event) {
+	path.position = event.point;
+}
+tools[2][0].onMouseUp = function(event) {
+	paths.push(path);
+	drawEmit(path.pathData, strokeColor);
+}
 
-// Listen for 'drawCircle' events
-// created by other users
-io.on( 'drawCircle', function( data ) {
+//Tool 3
+tools[3] = new Array();
+tools[3][1] = 'rectangle';
+tools[3][0] = new Tool();
+tools[3][0].onMouseDown = function(event) {
+	strokeColor = 'black';
+	path = new Path.Rectangle({
+		position: event.point,
+		size: new Size(80,40),
+		strokeColor: strokeColor
+	});
+}
+tools[3][0].onMouseDrag = function(event) {
+	path.position = event.point;
+}
+tools[3][0].onMouseUp = function(event) {
+	paths.push(path);
+	drawEmit(path.pathData, strokeColor);
+}
 
-  console.log( 'drawCircle event recieved:', data );
+//Tool 4
+tools[4] = new Array();
+tools[4][1] = 'straightLine';
+tools[4][0] = new Tool();
+tools[4][0].onMouseDown = function(event) {
+	path = new Path();
+	path.add(event.point);
+	path.add(event.point);
+	strokeColor = 'black';
+	path.strokeColor = strokeColor;
+};
 
-  // Draw the circle using the data sent
-  // from another user
-  drawCircle( data.x, data.y, data.radius, data.color );
-  
-})
+tools[4][0].onMouseDrag = function(event) {
+	path.lastSegment.point = event.point;
+}
+tools[4][0].onMouseUp = function(event){
+	path.add(event.point);
+	paths.push(path);
+	drawEmit(path.pathData, strokeColor);
+}
+
+//Create buttons to switch tools
+for(i = 0; i < tools.length; i++){
+	var btn = document.createElement("BUTTON");
+	var t = document.createTextNode(tools[i][1]);
+	btn.appendChild(t);
+	btn.setAttribute("id", "b"+i);
+	btn.setAttribute("class", "toolButton");
+	btn.addEventListener('click', function(index) { 
+            return function () {
+                tools[index][0].activate();
+            };
+        }(i), true);
+	document.body.appendChild(btn);
+}
+
+//Undo button
+$("#undo").click(function(){
+	if(paths.length > 0){
+		paths[paths.length - 1].remove();
+		paths.pop();
+		undoEmit();
+	}
+});
+
+//Emit SVG-Data to server
+function drawEmit(pathData, strokeColor, strokeWidth){
+	var sessionId = socket.io.engine.id;
+	socket.emit('drawEmit', pathData, sessionId, strokeColor, strokeWidth);
+	console.log("you drew sth");
+}
+
+//Emit Undo-Event
+function undoEmit(){
+	var sessionId = socket.io.engine.id;
+	socket.emit('undoEmit', sessionId);
+	console.log("you undid sth");
+}
+
+//Receive and draw SVG-Data from other clients
+socket.on('drawEmit', function(pathData, strokeColor, strokeWidth){
+	console.log("sth has been drawn");
+	var foreignPath = new Path(pathData);
+	foreignPath.strokeColor = strokeColor;
+	if(strokeWidth != null && strokeWidth != undefined){	
+		foreignPath.strokeWidth = strokeWidth;
+	}
+	paths.push(foreignPath);
+});
+
+//Receive Undo-Event and undo last path
+socket.on('undoEmit', function(){
+	paths[paths.length - 1].remove();
+	paths.pop();
+	console.log("sth has been undone");
+});

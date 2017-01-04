@@ -1,0 +1,12 @@
+.toolButton{
+  margin: 10px;
+}
+
+.topButton{
+  margin: 10px;
+}
+#draw{
+  resize: both;
+  width: 100%;
+  border:1px solid #000000;
+}
