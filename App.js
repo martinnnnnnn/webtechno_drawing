@@ -15,13 +15,25 @@ app.get('/draw', function(req, res) {
 
 io.on('connection', function (socket) {
 
-  socket.on( 'drawEmit', function( data, session, strokeColor, strokeWidth ) {
+  socket.on( 'drawEmit', function(session, path) {
     console.log( "session " + session + " drew sth");
-    socket.broadcast.emit( 'drawEmit', data, strokeColor, strokeWidth);
+    socket.broadcast.emit( 'drawEmit', path);
   });
   socket.on( 'undoEmit', function(session) {
     console.log( "session " + session + " undid sth");
     socket.broadcast.emit( 'undoEmit');
+  });
+  socket.on( 'changeEmit', function(session, oldPathData, newPathData) {
+    console.log( "session " + session + " changed sth");
+    socket.broadcast.emit( 'changeEmit',oldPathData, newPathData);
+  });
+  socket.on( 'delEmit', function(session, pathData) {
+    console.log( "session " + session + " deleted sth");
+    socket.broadcast.emit( 'changeEmit',pathData);
+  });
+  socket.on( 'sendEmit', function(session, paths) {
+    console.log( "session " + session + " sent sth");
+    socket.broadcast.emit( 'sendEmit',paths);
   });
 });
 
